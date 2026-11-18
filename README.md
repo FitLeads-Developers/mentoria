@@ -44,3 +44,7 @@ La skill `whatsapp` no es oficial: WhatsApp no permite clientes no oficiales y p
 
 - Tests del formateador de chats: `cd plugin/scripts/whatsapp && node --test`
 - Validar: `claude plugin validate .`
+
+## Ejemplo: Dani Vega
+
+`ejemplo/entrenador-ia/` es el entrenador de ejemplo del curso (personaje 100 % IA): ficha de marca (`marca.md`), hoja de personaje, referencias, looks y vídeos en bruto para practicar la edición. Las skills buscan `entrenador-ia/marca.md`: copia esa carpeta a tu proyecto para probarlas con Dani. Si lo publicas fuera del curso, indica que está creado con IA.
