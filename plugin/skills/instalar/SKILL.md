@@ -1,6 +1,6 @@
 ---
 name: instalar
-description: Guía paso a paso para dejar listo tu ordenador para el curso de IA para entrenadores: comprueba Node.js y Claude Code, te lleva a crear cada cuenta (Claude, ChatGPT, NotebookLM, Higgsfield, treg) y a conectar Gmail, Calendar y Drive. Úsala cuando el alumno escriba /mentoria:instalar o diga que quiere preparar su ordenador para el curso.
+description: Guía paso a paso para dejar listo tu ordenador para el curso de IA para entrenadores: comprueba Node.js y Claude Code, instala Remotion (edición de vídeo) con sus skills, te lleva a crear cada cuenta (Claude, ChatGPT, NotebookLM, Higgsfield, treg) y a conectar Gmail, Calendar y Drive. Úsala cuando el alumno escriba /mentoria:instalar o diga que quiere preparar su ordenador para el curso.
 disable-model-invocation: true
 allowed-tools:
   - Bash(node --version)
@@ -10,6 +10,10 @@ allowed-tools:
   - Bash(xdg-open *)
   - Bash(start *)
   - Bash(claude --version)
+  - Bash(mkdir -p ~/mentoria)
+  - Bash(npx -y create-video@latest --yes --blank --skills reels)
+  - Bash(npx remotion compositions)
+  - Bash(npx remotion render *)
 ---
 
 # Instalar: tu ordenador listo para el curso
@@ -39,7 +43,15 @@ Ejecuta `node --version`.
 ### 3. Claude Code
 Ejecuta `claude --version`. Si funciona, ya estás dentro. Recuerda: Claude Code necesita un plan de pago (Pro o superior); el plan gratis no lo incluye. Guía oficial: https://code.claude.com/docs/en/setup
 
-### 4. Cuentas (una a una)
+### 4. Remotion: tu editor de vídeo
+Remotion edita vídeos con código: subtítulos, cortes y plantillas que Claude escribe por ti. Es gratis para autónomos y equipos de hasta 3 personas.
+1. Di: «Voy a crear tu carpeta de reels en `~/mentoria/reels`. Tarda unos minutos».
+2. Ejecuta `mkdir -p ~/mentoria` y, dentro de `~/mentoria`, `npx -y create-video@latest --yes --blank --skills reels`. Crea el proyecto, instala lo necesario y añade las skills oficiales de Remotion para Claude.
+3. Comprueba que funciona: dentro de `~/mentoria/reels`, `npx remotion compositions` y `npx remotion render MyComp out/prueba.mp4 --frames=0-29`. La primera vez descarga un navegador interno; es normal.
+4. Si sale `out/prueba.mp4`: ✅. Si falla, enseña el error en una frase y sigue con el resto; `/mentoria:reel` lo reintenta.
+Si ya existe `~/mentoria/reels`, no lo vuelvas a crear: solo haz la comprobación del punto 3.
+
+### 5. Cuentas (una a una)
 Para cada fila: «Voy a abrirte la página de X. Crea la cuenta tú y dime *hecho*». Abre con `open URL` (Mac), `xdg-open URL` (Linux) o `start URL` (Windows). Luego PARA.
 
 | Cuenta | Para qué | Página |
@@ -49,20 +61,20 @@ Para cada fila: «Voy a abrirte la página de X. Crea la cuenta tú y dime *hech
 | NotebookLM | Estudios → podcast, preguntas sobre tu método | https://notebooklm.google.com |
 | Higgsfield | Imágenes y vídeo con IA | https://higgsfield.ai |
 | treg | Datos externos (por ejemplo, analizar un Instagram) | busca «treg» y entra en su web oficial |
-| Remotion | Editar vídeos | No necesita cuenta: solo Node.js. Más info: https://www.remotion.dev |
 
 Pregunta antes de abrir cada una si ya la tiene. No insistas en las que no necesite todavía.
 
-### 5. Conectores en Claude
+### 6. Conectores en Claude
 Gmail, Google Calendar y Google Drive se conectan en la app de Claude: **Settings → Connectors** (Ajustes → Conectores). Dile que pulse *Connect* en cada uno y acepte los permisos en la ventana de Google. Para en cada uno.
 Después, la extensión **Claude in Chrome**: se instala desde la Chrome Web Store (busca «Claude in Chrome»). Para y espera.
 
-### 6. Comprobación final
-Verifica lo que puedas (`node --version`, `claude --version`). El resto lo confirma el alumno. Muestra la tabla con ✅ / ⏳ / ❌ según lo que haya dicho:
+### 7. Comprobación final
+Verifica lo que puedas (`node --version`, `claude --version`, que exista `~/mentoria/reels/out/prueba.mp4`). El resto lo confirma el alumno. Muestra la tabla con ✅ / ⏳ / ❌ según lo que haya dicho:
 
 | Cosa | Estado |
 |---|---|
 | Node.js | |
+| Remotion (`~/mentoria/reels`) | |
 | Claude Code con sesión iniciada | |
 | Claude (plan de pago) | |
 | ChatGPT | |

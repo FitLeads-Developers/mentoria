@@ -17,7 +17,7 @@ Habla en español, tutea, frases cortas. Solo **edición**: el guion lo trae el 
 1. Pide la ruta del vídeo y la duración objetivo (30 s por defecto). Comprueba que el archivo existe.
 2. **Marca:** si hay `entrenador-ia/marca.md` (o un archivo de marca del alumno), léelo y usa sus colores y tipografías. Con la marca de ejemplo: texto tinta `#1B1F1E` sobre arena `#F5EFE6`, acento coral `#FF6B4A` para la palabra clave, titulares Archivo e Inter para el texto. Si no hay marca, pregunta 2 colores y una fuente.
 3. **Subtítulos:** transcribe el audio, enséñale la transcripción para que corrija errores y solo entonces crea los subtítulos animados (grandes, palabra clave destacada).
-4. Crea el proyecto Remotion en una carpeta nueva (por ejemplo `reels/<nombre>/`), con la **plantilla reutilizable**: vídeo de entrada, subtítulos y colores como parámetros, para que el siguiente reel sea cambiar el archivo.
+4. Usa el proyecto de `~/mentoria/reels` si existe (lo crea `/mentoria:instalar`, con las skills oficiales de Remotion). Si no, créalo con `npx -y create-video@latest --yes --blank --skills reels` dentro de `~/mentoria`. Cada reel va en su propia composición, con la **plantilla reutilizable**: vídeo de entrada, subtítulos y colores como parámetros, para que el siguiente reel sea cambiar el archivo.
 5. Previsualiza (`npx remotion studio`), corrige lo que pida el alumno y renderiza a MP4 vertical 1080x1920.
 6. Si usa imágenes o personajes generados con IA, el vídeo debe indicarlo (etiqueta «creado con IA» al publicar).
 
