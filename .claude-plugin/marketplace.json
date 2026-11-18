@@ -1,0 +1,14 @@
+{
+  "name": "fitleads",
+  "description": "Material del curso de IA para entrenadores de FitLeads: instalación, clientes, WhatsApp y las skills de cada clase.",
+  "owner": { "name": "FitLeads" },
+  "plugins": [
+    {
+      "name": "mentoria",
+      "source": "./plugin",
+      "description": "Todo lo que se enseña en el curso de IA para entrenadores, listo para usar: instalación guiada, fichas de clientes, lector de WhatsApp en tu ordenador y una skill por clase.",
+      "category": "productivity",
+      "tags": ["curso", "entrenadores", "espanol"]
+    }
+  ]
+}
