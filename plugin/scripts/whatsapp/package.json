@@ -1,9 +1,9 @@
 {
   "name": "fitleads-whatsapp-lector",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "Lector de WhatsApp de solo lectura en 127.0.0.1 para exportar chats de clientes a markdown.",
+  "description": "Lector de WhatsApp de solo lectura en 127.0.0.1 para consultar tus chats desde Claude.",
   "scripts": {
     "setup": "npx puppeteer browsers install chrome",
     "start": "node server.js",

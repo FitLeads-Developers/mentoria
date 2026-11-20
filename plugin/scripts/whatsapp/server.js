@@ -7,8 +7,9 @@ import path from 'node:path';
 import QRCode from 'qrcode';
 import pkg from 'whatsapp-web.js';
 import { chatToMarkdown } from './format.js';
+import { parseChatsQuery, parseMessagesQuery, selectChats, shapeMessages } from './api.js';
 import { openCommand, findChrome, isLaunchFailure } from './browser.js';
-import { HOST, PORT, DATA_DIR, EXPORT_ROOT } from './config.js';
+import { HOST, PORT, DATA_DIR } from './config.js';
 
 const { Client, LocalAuth } = pkg;
 
@@ -87,7 +88,7 @@ function json(res, code, obj) {
 function pagina() {
   let cuerpo;
   if (estado.status === 'connected') {
-    cuerpo = '<h1>Conectado ✅</h1><p>Ya puedes volver a Claude Code y elegir el chat que quieres exportar.</p>';
+    cuerpo = '<h1>Conectado ✅</h1><p>Ya puedes volver a Claude Code y preguntarle lo que quieras sobre tus chats.</p>';
   } else if (estado.status === 'qr' && estado.qr) {
     cuerpo = `<h1>Escanea este código</h1><img src="${estado.qr}" alt="Código QR de WhatsApp" width="320" height="320">
 <p>WhatsApp → Dispositivos vinculados → Vincular un dispositivo.</p>`;
@@ -103,63 +104,29 @@ function pagina() {
 <p style="color:#666;font-size:.85rem">Solo lectura. Este programa nunca envía mensajes.</p></body></html>`;
 }
 
-async function leerJson(req) {
-  let datos = '';
-  for await (const trozo of req) {
-    datos += trozo;
-    if (datos.length > 100_000) throw new Error('petición demasiado grande');
-  }
-  return JSON.parse(datos || '{}');
+async function listarChats(opciones) {
+  return selectChats(await client.getChats(), opciones);
 }
 
-const slug = (s) =>
-  s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '') || 'chat';
-
-async function listarChats() {
-  const chats = await client.getChats();
-  return chats.map((c) => ({
-    id: c.id._serialized,
-    name: c.name,
-    isGroup: c.isGroup,
-    lastMessageDate: c.timestamp ? new Date(c.timestamp * 1000).toISOString() : null,
-  }));
-}
-
-async function exportar({ chatId, limit, outDir }) {
-  if (typeof chatId !== 'string' || !chatId) throw new Error('falta chatId');
-  const n = Math.min(Math.max(Number(limit) || 500, 1), 5000);
-  const destino = path.resolve(EXPORT_ROOT, outDir || '.');
-  if (destino !== EXPORT_ROOT && !destino.startsWith(EXPORT_ROOT + path.sep)) {
-    throw new Error('outDir debe estar dentro de la carpeta de trabajo');
-  }
+async function leerMensajes({ chatId, limit, format }) {
   const chat = await client.getChatById(chatId);
-  const mensajes = await chat.fetchMessages({ limit: n });
-  const md = chatToMarkdown(
-    chat.name,
-    mensajes.map((m) => ({
-      timestamp: m.timestamp,
-      fromMe: m.fromMe,
-      author: m._data?.notifyName || null,
-      body: m.body,
-      type: m.type,
-    })),
-  );
-  await fs.mkdir(destino, { recursive: true });
-  const fichero = path.join(destino, `${slug(chat.name)}.md`);
-  await fs.writeFile(fichero, md, 'utf8');
-  return { file: fichero, messages: mensajes.length };
+  const crudos = await chat.fetchMessages({ limit });
+  const mensajes = crudos.map((m) => ({
+    timestamp: m.timestamp,
+    fromMe: m.fromMe,
+    author: m._data?.notifyName || null,
+    body: m.body,
+    type: m.type,
+  }));
+  if (format === 'md') return { markdown: chatToMarkdown(chat.name, mensajes) };
+  return { chat: { id: chatId, name: chat.name }, messages: shapeMessages(chat.name, mensajes) };
 }
 
 const server = http.createServer(async (req, res) => {
   try {
     // Protege contra páginas web externas que intenten hablar con el servidor local.
     if (!HOSTS_OK.has(req.headers.host ?? '')) return json(res, 403, { error: 'host no permitido' });
-    const { pathname } = new URL(req.url, `http://${HOST}:${PORT}`);
+    const { pathname, searchParams } = new URL(req.url, `http://${HOST}:${PORT}`);
 
     if (req.method === 'GET' && pathname === '/') {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -169,19 +136,19 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { status: estado.status, error: estado.error });
     }
     if (req.method === 'GET' && pathname === '/api/chats') {
-      if (estado.status !== 'connected') return json(res, 409, { error: 'no conectado' });
-      return json(res, 200, await listarChats());
+      if (estado.status !== 'connected') return json(res, 409, { error: 'no conectado', status: estado.status });
+      return json(res, 200, await listarChats(parseChatsQuery(searchParams)));
     }
-    if (req.method === 'POST' && pathname === '/api/export') {
-      if (estado.status !== 'connected') return json(res, 409, { error: 'no conectado' });
-      // Solo JSON (obliga a un preflight CORS que no concedemos) y sin Origin ajeno.
-      if (!String(req.headers['content-type'] ?? '').startsWith('application/json')) {
-        return json(res, 415, { error: 'usa application/json' });
+    if (req.method === 'GET' && pathname === '/api/messages') {
+      if (estado.status !== 'connected') return json(res, 409, { error: 'no conectado', status: estado.status });
+      const consulta = parseMessagesQuery(searchParams);
+      if (consulta.error) return json(res, 400, { error: consulta.error });
+      const datos = await leerMensajes(consulta);
+      if (datos.markdown !== undefined) {
+        res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
+        return res.end(datos.markdown);
       }
-      if (req.headers.origin && !HOSTS_OK.has(new URL(req.headers.origin).host)) {
-        return json(res, 403, { error: 'origen no permitido' });
-      }
-      return json(res, 200, await exportar(await leerJson(req)));
+      return json(res, 200, datos);
     }
     return json(res, 404, { error: 'no existe' });
   } catch (e) {

@@ -1,7 +1,7 @@
 {
   "name": "mentoria",
   "displayName": "Mentoría IA para entrenadores",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Skills del curso de IA para entrenadores: instalación guiada, fichas de clientes, lector de WhatsApp en local y una skill por clase.",
   "author": { "name": "FitLeads" },
   "keywords": ["curso", "entrenadores", "espanol"]

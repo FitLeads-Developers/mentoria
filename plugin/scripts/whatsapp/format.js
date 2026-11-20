@@ -25,7 +25,7 @@ function partes(timestamp) {
   return { fecha: `${p.year}-${p.month}-${p.day}`, hora: `${p.hour}:${p.minute}` };
 }
 
-function contenido({ type, body }) {
+export function contenido({ type, body }) {
   const texto = (body ?? '').trim();
   const marcador = MARCADORES[type];
   if (marcador) return texto ? `${marcador} ${texto}` : marcador;
