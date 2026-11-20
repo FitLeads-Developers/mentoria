@@ -29,7 +29,7 @@ Students of the FitLeads course run `/mentoria:whatsapp` on macOS, Windows or Li
 - SKILL.md has no macOS-only command left.
 
 ## Progress / evidence
-- T1 cd5540b: browser.js (openCommand/chromeCandidates/findChrome/isLaunchFailure) + 12 tests; server opens system browser after listen, --no-open, one retry with system Chrome; SKILL.md cross-OS + safety warning; plugin 0.3.0. RED 11/12 (missing module) -> GREEN 23/23 (writer), parent re-run 23/23. Real WhatsApp run not exercised (no server start against WhatsApp); Windows/Linux not run on real machines.
+- T1 cd5540b: browser.js (openCommand/chromeCandidates/findChrome/isLaunchFailure) + 12 tests; server opens system browser after listen, --no-open, one retry with system Chrome; SKILL.md cross-OS + safety warning; plugin 0.3.0. RED 11/12 (missing module) -> GREEN 23/23 (writer), parent re-run 23/23. Real WhatsApp run not exercised (no server start against WhatsApp); Windows/Linux not run on real machines. RDD disabled (rdd_disabled) -> assess high -> independent reviewer: 0 blockers, 3 minor; fixed windowsHide + non-zero exit hint in 9ad6d89 (23/23); deferred: extra Chrome candidates (~/Applications, Brave, /snap/bin).
 
 ## Next step
 T2: user approval of the Academia task text, then T3.
