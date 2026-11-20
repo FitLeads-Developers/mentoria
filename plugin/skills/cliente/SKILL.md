@@ -16,7 +16,7 @@ clientes/
     ficha.md
     revisiones.md
     promesas.md
-    chats/        <- chats exportados de WhatsApp en markdown
+    chats/        <- chats guardados en markdown (opcional, solo si el alumno lo pide)
 ```
 
 Nombres de carpeta en minúsculas, sin tildes ni espacios (`marta-lopez`). Trabaja dentro de la carpeta actual; si no existe `clientes/`, ofrécete a crearla.
@@ -42,7 +42,7 @@ Añade al final de `revisiones.md` una entrada con la fecha de hoy:
 Rellénala con lo que cuente el alumno. Si hay algo que prometió, anótalo también en `promesas.md`.
 
 ### «¿Qué le prometí a X?»
-Lee `promesas.md` y los chats de esa persona. Responde con una lista: promesa, fecha y si consta como cumplida. Cita de qué archivo sale cada cosa. Si no aparece nada, dilo; no supongas.
+Lee `promesas.md` y los chats de esa persona (si WhatsApp está conectado con `/mentoria:whatsapp`, léelos en directo desde ahí; si no, los de `chats/`). Responde con una lista: promesa, fecha y si consta como cumplida. Cita de qué archivo sale cada cosa. Si no aparece nada, dilo; no supongas.
 
 ### Señales de baja
 Recorre todos los clientes y busca:

@@ -41,7 +41,7 @@ reutilizables (nombre, cuándo usarlo, pasos y formato de salida) para guardarla
 ```
 
 ## 5. Tus conversaciones de WhatsApp
-Exporta el chat y súbelo. Solo de clientes con consentimiento RGPD.
+Con `/mentoria:whatsapp` conectado, pregúntale a Claude por tus chats. Si prefieres pegar un chat, hazlo solo de clientes que te hayan dado su consentimiento RGPD.
 ```
 Aquí tienes el chat con una clienta. ¿Qué le he prometido y cuándo? Cita el mensaje de cada promesa
 y dime cuáles no consta que haya cumplido.

@@ -1,8 +1,8 @@
 ---
 name: whatsapp
-description: Conecta WhatsApp en modo solo lectura mediante un código QR en tu propio ordenador (127.0.0.1) y exporta los chats de tus clientes a markdown dentro de su carpeta. Úsala cuando el alumno quiera leer, exportar o analizar sus chats de WhatsApp.
+description: Conecta tu WhatsApp en modo solo lectura mediante un código QR en tu propio ordenador (127.0.0.1) y responde preguntas sobre tus chats («¿qué me escribió Marta ayer?», «resume mi semana con Luis», «¿a quién tengo sin contestar?»). Úsala cuando el alumno quiera consultar, resumir o analizar sus conversaciones de WhatsApp.
 disable-model-invocation: true
-argument-hint: "[nombre del cliente]"
+argument-hint: "[pregunta sobre tus chats]"
 allowed-tools:
   - Bash(node *)
   - Bash(npm *)
@@ -11,7 +11,7 @@ allowed-tools:
   - Bash(mkdir -p *)
 ---
 
-# WhatsApp: leer y exportar chats (solo lectura)
+# WhatsApp: pregúntale a Claude por tus chats (solo lectura)
 
 > **Aviso. Léelo antes de empezar** (muéstraselo tal cual al alumno y espera su «de acuerdo»):
 >
@@ -20,44 +20,43 @@ allowed-tools:
 > - Por eso: usa preferentemente **un número secundario**, o acepta el riesgo bajo tu responsabilidad.
 > - Es **solo lectura**: el programa no envía mensajes, y no hay forma de hacerlo desde aquí. Leer es lo más seguro que se puede hacer: en modo lectura no te va a pasar nada, aunque el riesgo de bloqueo de los clientes no oficiales sigue existiendo.
 > - Lo que sí mete en líos a un número es **enviar**. Evita mandar mensajes de WhatsApp desde herramientas no oficiales y, sobre todo, **nunca envíes a mucha gente de golpe**: los envíos masivos son lo que hace que bloqueen los números.
-> - Exporta **solo chats de clientes que te han dado su consentimiento RGPD** (están en su `ficha.md`). Los chats pueden contener datos de salud.
-> - Todo ocurre en tu ordenador. El servidor solo escucha en `127.0.0.1`.
+> - Todo ocurre en tu ordenador. El servidor solo escucha en `127.0.0.1` y tus chats no se guardan en ningún archivo.
 
 Habla en español, tutea, frases cortas. Si el alumno no acepta el aviso, para aquí.
 
 ## Código
 
-`${CLAUDE_PLUGIN_ROOT}/scripts/whatsapp/` (Node). Se copia a una carpeta del alumno, porque el plugin puede actualizarse y borrarla.
+`${CLAUDE_PLUGIN_ROOT}/scripts/whatsapp/` (Node). Se copia a `~/.fitleads-whatsapp/app`, porque el plugin puede actualizarse y borrar su carpeta. La sesión de WhatsApp vive aparte, en `~/.fitleads-whatsapp/.wwebjs_auth`, y no se toca al actualizar.
 
 ## Pasos
 
-1. **Preparar (solo la primera vez).** Copia el código y descarga lo que necesita:
+1. **Preparar (la primera vez y cuando el plugin se actualice).** Tú lo haces, el alumno no teclea nada.
+   - Comprueba si ya está instalado: `node -p "require('$HOME/.fitleads-whatsapp/app/package.json').version"`. Si falla, no está instalado.
+   - Compara con la versión de `${CLAUDE_PLUGIN_ROOT}/scripts/whatsapp/package.json`. Si no existe la instalación o la versión es distinta, copia el código (esto mantiene la sesión):
+     ```
+     mkdir -p ~/.fitleads-whatsapp/app
+     cp -R "${CLAUDE_PLUGIN_ROOT}/scripts/whatsapp/." ~/.fitleads-whatsapp/app/
+     cd ~/.fitleads-whatsapp/app && npm install
+     ```
+   - Solo la primera vez, descarga el navegador interno: `cd ~/.fitleads-whatsapp/app && npm run setup`.
+   - Avisa antes: descarga cientos de MB y puede tardar varios minutos. Lánzalo en segundo plano y espera.
+   - Funciona igual en Mac, Windows (con Git Bash, que es lo que usa Claude Code allí) y Linux.
+   - Si `npm run setup` falla o el servidor da «Failed to launch the browser», el servidor ya prueba solo con el Chrome, Chromium o Edge que encuentre instalado. Si aun así no lo encuentra, usa el Chrome del alumno: arranca el servidor con `PUPPETEER_EXECUTABLE_PATH` apuntando a su navegador:
+     - Mac: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
+     - Windows: `C:\Program Files\Google\Chrome\Application\chrome.exe` (o la misma ruta en `Program Files (x86)`; en Git Bash: `/c/Program Files/Google/Chrome/Application/chrome.exe`)
+     - Linux: `/usr/bin/google-chrome` o `/usr/bin/chromium` (el que tengas)
+2. **Arrancar el servidor.** Antes mira si ya está en marcha: `curl -s http://127.0.0.1:3977/api/status`. Si responde, reutilízalo y salta al paso 4 si dice `connected`. Si no responde, arráncalo **en segundo plano**:
    ```
-   mkdir -p ~/.fitleads-whatsapp
-   cp -R "${CLAUDE_PLUGIN_ROOT}/scripts/whatsapp" ~/.fitleads-whatsapp/app
-   cd ~/.fitleads-whatsapp/app && npm install && npm run setup
+   node ~/.fitleads-whatsapp/app/server.js
    ```
-   Avisa antes: descarga un navegador interno (cientos de MB) y puede tardar varios minutos. Lánzalo en segundo plano y espera.
-   Funciona igual en Mac, Windows (con Git Bash, que es lo que usa Claude Code allí) y Linux.
-   Si `npm run setup` falla o el servidor da «Failed to launch the browser», el servidor ya prueba solo con el Chrome, Chromium o Edge que encuentre instalado. Si aun así no lo encuentra, usa el Chrome del alumno: arranca el servidor con `PUPPETEER_EXECUTABLE_PATH` apuntando a su navegador:
-   - Mac: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
-   - Windows: `C:\Program Files\Google\Chrome\Application\chrome.exe` (o la misma ruta en `Program Files (x86)`; en Git Bash: `/c/Program Files/Google/Chrome/Application/chrome.exe`)
-   - Linux: `/usr/bin/google-chrome` o `/usr/bin/chromium` (el que tengas)
-2. **Arrancar el servidor en segundo plano**, desde la carpeta de trabajo del alumno (donde está `clientes/`):
-   ```
-   node ~/.fitleads-whatsapp/app/server.js --export-root "$PWD"
-   ```
-   Solo se puede exportar dentro de esa carpeta.
 3. **La página se abre sola** en el navegador por defecto del alumno (Chrome, Edge, Safari, Firefox…): el servidor lo hace él mismo en Mac, Windows y Linux. Si no se abre, dile al alumno que pegue http://127.0.0.1:3977 en su navegador de siempre. No uses el navegador de Claude para esto. (Con `--no-open` el servidor no abre nada.) Confirma con `curl -s http://127.0.0.1:3977/api/status`: debe decir `qr` (tarda unos 20–40 s en aparecer; si dice `loading`, espera).
-4. **El alumno escanea el código con el móvil:** WhatsApp → **Dispositivos vinculados** → **Vincular un dispositivo**. Tú no tocas el móvil. Cuando `/api/status` diga `connected` y la página ponga «Conectado ✅», sigue.
-5. **Elegir chat.** `curl -s http://127.0.0.1:3977/api/chats` devuelve nombre, id y fecha del último mensaje. Enséñale una lista corta y que elija. Comprueba en su `ficha.md` que hay consentimiento RGPD; si no lo hay o no existe la ficha, para y díselo.
-6. **Exportar** dentro de la carpeta del cliente:
-   ```
-   curl -s -X POST http://127.0.0.1:3977/api/export -H 'Content-Type: application/json' \
-     -d '{"chatId":"<id>","limit":500,"outDir":"clientes/<nombre-apellido>/chats"}'
-   ```
-   Respuesta: ruta del archivo y número de mensajes. Los audios, imágenes y vídeos salen como `[audio]`, `[imagen]`, `[vídeo]`: el contenido no se descarga.
-7. **Pasar a la skill `cliente`** (`/mentoria:cliente`): preguntar «¿qué le prometí a…?», señales de baja, añadir revisión.
+4. **El alumno escanea el código con el móvil:** WhatsApp → **Dispositivos vinculados** → **Vincular un dispositivo**. Tú no tocas el móvil. Espera a que `/api/status` diga `connected` (y la página ponga «Conectado ✅»). Solo hace falta la primera vez: la sesión se guarda y la próxima vez conecta sola.
+5. **Responder a lo que pregunte el alumno.** Solo lees; no guardes el contenido de los chats en archivos ni en memoria salvo que el alumno lo pida de forma explícita.
+   - **Buscar el chat:** `curl -s "http://127.0.0.1:3977/api/chats?q=marta&limit=10"`. Devuelve, de más reciente a más antiguo: `name`, `id`, `isGroup`, `unreadCount`, `lastMessageDate` y una vista previa (`preview`). Sin `q` lista los últimos 30 (máximo 200). Si hay varios chats que encajan, pregunta cuál (una sola pregunta).
+   - **Leer mensajes:** `curl -s "http://127.0.0.1:3977/api/messages?chatId=<id>&limit=100"`. Devuelve JSON de más antiguo a más reciente (`timestamp`, `fromMe`, `author`, `body`). Por defecto 50, máximo 500. Con `&format=md` lo devuelve ya como markdown agrupado por días. Los audios, imágenes y vídeos salen como `[audio]`, `[imagen]`, `[vídeo]`: el contenido no se descarga.
+   - **«¿A quién tengo sin contestar?»:** lista los chats recientes (`unreadCount` y `preview`), lee los que dudes y responde con nombre y fecha.
+   - Si un `curl` responde `no conectado`, vuelve al paso 2.
+   - Contesta a la pregunta con datos del chat y cita fechas. Si no aparece, dilo; no supongas. Si el alumno quiere dejar notas en la ficha de un cliente, que te lo pida y lo haces (ver `/mentoria:cliente`).
 
 ## Desconectar
 

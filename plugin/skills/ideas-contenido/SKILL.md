@@ -15,7 +15,7 @@ Habla en español, tutea, frases cortas. El **guion** de cada pieza se trabaja e
 
 ## Qué hacer
 
-1. Lee los chats indicados (`clientes/*/chats/`) o el texto que pegue el alumno.
+1. Lee los chats indicados (`clientes/*/chats/`, o en directo con `/mentoria:whatsapp` si está conectado) o el texto que pegue el alumno.
 2. Busca **dudas que se repiten** (en 2+ personas o varias veces).
 3. Entrega **3 ideas** en una tabla: duda (anonimizada) · origen (cuántas veces y en qué tipo de chats, sin nombres) · formato (reel, historia, carrusel) · gancho de una línea.
 4. Añade, si encaja, una idea de **petición de testimonio** (cómo pedirlo sin presionar).

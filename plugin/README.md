@@ -23,7 +23,7 @@ Después, reinicia Claude Code y escribe:
 |---|---|---|
 | `/mentoria:instalar` | Prepara tu ordenador, cuentas y conectores, paso a paso | 2 |
 | `/mentoria:cliente` | Una carpeta por cliente: ficha, revisiones, promesas, señales de baja | 3, 5 |
-| `/mentoria:whatsapp` | Lee y exporta chats de clientes (solo lectura, en local) | 5 |
+| `/mentoria:whatsapp` | Conecta tu WhatsApp en solo lectura y responde preguntas sobre tus chats (en local) | 5 |
 | `/mentoria:revision-semanal` | Resumen de la semana y mensaje para el cliente | 4 |
 | `/mentoria:objeciones` | Respuestas honestas a «es caro», «lo pienso»… | 4 |
 | `/mentoria:notebooklm` | Prompts para estudios, podcast y preguntas sobre tu método | 6 |
@@ -38,9 +38,9 @@ Si no usas Claude Code, los prompts de cada clase están en [`prompts.md`](promp
 
 ## Importante sobre WhatsApp
 
-La skill `whatsapp` no es oficial: WhatsApp no permite clientes no oficiales y puede bloquear el número. Es de solo lectura y solo para chats de clientes con consentimiento RGPD. Lee el aviso de la skill antes de usarla.
+La skill `whatsapp` no es oficial: WhatsApp no permite clientes no oficiales y puede bloquear el número. Es de solo lectura: lee tus chats para responderte y no envía nada. Todo se queda en tu ordenador. Lee el aviso de la skill antes de usarla.
 
 ## Para quien mantiene el plugin
 
-- Tests del formateador de chats: `cd plugin/scripts/whatsapp && node --test`
+- Tests del lector de WhatsApp (formato y API): `cd plugin/scripts/whatsapp && node --test`
 - Validar: `claude plugin validate .`
