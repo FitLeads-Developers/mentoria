@@ -1,11 +1,13 @@
 // Lector de WhatsApp de SOLO LECTURA. Escucha únicamente en 127.0.0.1.
 // No hay ningún código que envíe mensajes: no añadas uno.
 import http from 'node:http';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import QRCode from 'qrcode';
 import pkg from 'whatsapp-web.js';
 import { chatToMarkdown } from './format.js';
+import { openCommand, findChrome, isLaunchFailure } from './browser.js';
 import { HOST, PORT, DATA_DIR, EXPORT_ROOT } from './config.js';
 
 const { Client, LocalAuth } = pkg;
@@ -14,36 +16,63 @@ const estado = { status: 'loading', qr: null, error: null };
 
 await fs.mkdir(DATA_DIR, { recursive: true });
 
-const client = new Client({
-  authStrategy: new LocalAuth({ dataPath: path.join(DATA_DIR, '.wwebjs_auth') }),
-  puppeteer: { headless: true },
-});
+function crearCliente(executablePath) {
+  const c = new Client({
+    authStrategy: new LocalAuth({ dataPath: path.join(DATA_DIR, '.wwebjs_auth') }),
+    puppeteer: { headless: true, ...(executablePath ? { executablePath } : {}) },
+  });
+  c.on('qr', async (qr) => {
+    estado.status = 'qr';
+    estado.qr = await QRCode.toDataURL(qr, { margin: 2, width: 320 });
+  });
+  c.on('authenticated', () => {
+    estado.status = 'loading';
+    estado.qr = null;
+  });
+  c.on('ready', () => {
+    estado.status = 'connected';
+    estado.qr = null;
+  });
+  c.on('auth_failure', (m) => {
+    estado.status = 'error';
+    estado.error = String(m);
+  });
+  c.on('disconnected', (reason) => {
+    estado.status = 'disconnected';
+    estado.qr = null;
+    estado.error = String(reason);
+  });
+  return c;
+}
 
-client.on('qr', async (qr) => {
-  estado.status = 'qr';
-  estado.qr = await QRCode.toDataURL(qr, { margin: 2, width: 320 });
-});
-client.on('authenticated', () => {
-  estado.status = 'loading';
-  estado.qr = null;
-});
-client.on('ready', () => {
-  estado.status = 'connected';
-  estado.qr = null;
-});
-client.on('auth_failure', (m) => {
-  estado.status = 'error';
-  estado.error = String(m);
-});
-client.on('disconnected', (reason) => {
-  estado.status = 'disconnected';
-  estado.qr = null;
-  estado.error = String(reason);
-});
+let client = crearCliente(process.env.PUPPETEER_EXECUTABLE_PATH);
 
-client.initialize().catch((e) => {
+function falloDeArranque(e) {
   estado.status = 'error';
   estado.error = e.message;
+}
+
+client.initialize().catch(async (e) => {
+  // Without the bundled Chrome, retry once with a Chrome/Chromium/Edge already installed.
+  const sistema = !process.env.PUPPETEER_EXECUTABLE_PATH && isLaunchFailure(e)
+    ? findChrome(process.platform, process.env)
+    : null;
+  if (!sistema) {
+    if (isLaunchFailure(e)) {
+      console.error(
+        'No se encontró ningún Chrome. Instala Google Chrome o arranca con PUPPETEER_EXECUTABLE_PATH apuntando a tu Chrome/Edge.',
+      );
+    }
+    return falloDeArranque(e);
+  }
+  console.log(`Chrome interno no disponible; reintento con ${sistema}`);
+  try {
+    await client.destroy();
+  } catch {
+    /* no llegó a arrancar */
+  }
+  client = crearCliente(sistema);
+  client.initialize().catch(falloDeArranque);
 });
 
 // ---------- HTTP ----------
@@ -161,8 +190,28 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`Lector de WhatsApp (solo lectura) en http://${HOST}:${PORT}`);
+  const url = `http://${HOST}:${PORT}`;
+  console.log(`Lector de WhatsApp (solo lectura) en ${url}`);
+  if (!process.argv.includes('--no-open')) abrirNavegador(url);
 });
+
+// Opens the QR page in the system default browser (never a Claude browser).
+function abrirNavegador(url) {
+  const manual = () => console.log(`Abre ${url} a mano en tu navegador habitual.`);
+  const comando = openCommand(process.platform, url);
+  if (!comando) return manual();
+  try {
+    const hijo = spawn(comando.cmd, comando.args, {
+      detached: true,
+      stdio: 'ignore',
+      windowsVerbatimArguments: process.platform === 'win32',
+    });
+    hijo.on('error', manual);
+    hijo.unref();
+  } catch {
+    manual();
+  }
+}
 
 async function parar() {
   server.close();
