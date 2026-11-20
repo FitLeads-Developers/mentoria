@@ -205,8 +205,13 @@ function abrirNavegador(url) {
       detached: true,
       stdio: 'ignore',
       windowsVerbatimArguments: process.platform === 'win32',
+      windowsHide: true,
     });
     hijo.on('error', manual);
+    // xdg-open exits non-zero when no browser handler is configured.
+    hijo.on('exit', (code) => {
+      if (code) manual();
+    });
     hijo.unref();
   } catch {
     manual();
