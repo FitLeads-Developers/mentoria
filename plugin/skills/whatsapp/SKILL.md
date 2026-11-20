@@ -4,9 +4,12 @@ description: Conecta tu WhatsApp en modo solo lectura mediante un código QR en 
 disable-model-invocation: true
 argument-hint: "[pregunta sobre tus chats]"
 allowed-tools:
+  - Bash(cd *)
   - Bash(node *)
   - Bash(npm *)
   - Bash(curl -s http://127.0.0.1:3977/*)
+  - Bash(curl -s "http://127.0.0.1:3977/*)
+  - Bash(curl -s -X POST http://127.0.0.1:3977/*)
   - Bash(cp -R *)
   - Bash(mkdir -p *)
 ---
@@ -30,9 +33,11 @@ Habla en español, tutea, frases cortas. Si el alumno no acepta el aviso, para a
 
 ## Pasos
 
-1. **Preparar (la primera vez y cuando el plugin se actualice).** Tú lo haces, el alumno no teclea nada.
-   - Comprueba si ya está instalado: `node -p "require('$HOME/.fitleads-whatsapp/app/package.json').version"`. Si falla, no está instalado.
-   - Compara con la versión de `${CLAUDE_PLUGIN_ROOT}/scripts/whatsapp/package.json`. Si no existe la instalación o la versión es distinta, copia el código (esto mantiene la sesión):
+1. **Mira qué hay en marcha.** `curl -s http://127.0.0.1:3977/api/status` (si no responde, no hay servidor). Devuelve `status` y `version`.
+2. **Preparar (la primera vez y cuando el plugin se actualice).** Tú lo haces, el alumno no teclea nada.
+   - Versión instalada: `cd ~/.fitleads-whatsapp/app && node -p "require('./package.json').version"`. Si falla, no está instalado.
+   - Versión del plugin: `cd "${CLAUDE_PLUGIN_ROOT}/scripts/whatsapp" && node -p "require('./package.json').version"`.
+   - Si no está instalado o las versiones difieren, **antes de copiar** para el servidor viejo si hay uno (en Windows bloquea los archivos): `curl -s -X POST http://127.0.0.1:3977/api/shutdown -H 'Content-Type: application/json'`. Espera unos segundos a que `/api/status` deje de responder. Luego copia el código (esto mantiene la sesión):
      ```
      mkdir -p ~/.fitleads-whatsapp/app
      cp -R "${CLAUDE_PLUGIN_ROOT}/scripts/whatsapp/." ~/.fitleads-whatsapp/app/
@@ -45,22 +50,22 @@ Habla en español, tutea, frases cortas. Si el alumno no acepta el aviso, para a
      - Mac: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
      - Windows: `C:\Program Files\Google\Chrome\Application\chrome.exe` (o la misma ruta en `Program Files (x86)`; en Git Bash: `/c/Program Files/Google/Chrome/Application/chrome.exe`)
      - Linux: `/usr/bin/google-chrome` o `/usr/bin/chromium` (el que tengas)
-2. **Arrancar el servidor.** Antes mira si ya está en marcha: `curl -s http://127.0.0.1:3977/api/status`. Si responde, reutilízalo y salta al paso 4 si dice `connected`. Si no responde, arráncalo **en segundo plano**:
+3. **Arrancar el servidor.** Reutiliza el que ya corre **solo si** su `version` es la instalada y su `status` es `connected`, `qr` o `loading` (salta al paso 5 si es `connected`). Si el `status` es `error` o `disconnected`, o la versión no coincide, páralo con el `POST /api/shutdown` de arriba y arranca uno nuevo. Si no hay ninguno, arráncalo igual. Siempre **en segundo plano**:
    ```
    node ~/.fitleads-whatsapp/app/server.js
    ```
-3. **La página se abre sola** en el navegador por defecto del alumno (Chrome, Edge, Safari, Firefox…): el servidor lo hace él mismo en Mac, Windows y Linux. Si no se abre, dile al alumno que pegue http://127.0.0.1:3977 en su navegador de siempre. No uses el navegador de Claude para esto. (Con `--no-open` el servidor no abre nada.) Confirma con `curl -s http://127.0.0.1:3977/api/status`: debe decir `qr` (tarda unos 20–40 s en aparecer; si dice `loading`, espera).
-4. **El alumno escanea el código con el móvil:** WhatsApp → **Dispositivos vinculados** → **Vincular un dispositivo**. Tú no tocas el móvil. Espera a que `/api/status` diga `connected` (y la página ponga «Conectado ✅»). Solo hace falta la primera vez: la sesión se guarda y la próxima vez conecta sola.
-5. **Responder a lo que pregunte el alumno.** Solo lees; no guardes el contenido de los chats en archivos ni en memoria salvo que el alumno lo pida de forma explícita.
+4. **La página se abre sola** en el navegador por defecto del alumno (Chrome, Edge, Safari, Firefox…): el servidor lo hace él mismo en Mac, Windows y Linux. Si no se abre, dile al alumno que pegue http://127.0.0.1:3977 en su navegador de siempre. No uses el navegador de Claude para esto. (Con `--no-open` el servidor no abre nada.) Confirma con `curl -s http://127.0.0.1:3977/api/status`: debe decir `qr` (tarda unos 20–40 s en aparecer; si dice `loading`, espera).
+5. **El alumno escanea el código con el móvil:** WhatsApp → **Dispositivos vinculados** → **Vincular un dispositivo**. Tú no tocas el móvil. Espera a que `/api/status` diga `connected` (y la página ponga «Conectado ✅»). Solo hace falta la primera vez: la sesión se guarda y la próxima vez conecta sola.
+6. **Responder a lo que pregunte el alumno.** Solo lees; no guardes el contenido de los chats en archivos ni en memoria salvo que el alumno lo pida de forma explícita.
    - **Buscar el chat:** `curl -s "http://127.0.0.1:3977/api/chats?q=marta&limit=10"`. Devuelve, de más reciente a más antiguo: `name`, `id`, `isGroup`, `unreadCount`, `lastMessageDate` y una vista previa (`preview`). Sin `q` lista los últimos 30 (máximo 200). Si hay varios chats que encajan, pregunta cuál (una sola pregunta).
    - **Leer mensajes:** `curl -s "http://127.0.0.1:3977/api/messages?chatId=<id>&limit=100"`. Devuelve JSON de más antiguo a más reciente (`timestamp`, `fromMe`, `author`, `body`). Por defecto 50, máximo 500. Con `&format=md` lo devuelve ya como markdown agrupado por días. Los audios, imágenes y vídeos salen como `[audio]`, `[imagen]`, `[vídeo]`: el contenido no se descarga.
    - **«¿A quién tengo sin contestar?»:** lista los chats recientes (`unreadCount` y `preview`), lee los que dudes y responde con nombre y fecha.
-   - Si un `curl` responde `no conectado`, vuelve al paso 2.
+   - Si un `curl` responde `no conectado`, mira `/api/status`: si dice `error` o `disconnected`, para el servidor con `POST /api/shutdown` y vuelve al paso 3 (arrancarlo de nuevo); si dice `qr` o `loading`, espera o vuelve al paso 4.
    - Contesta a la pregunta con datos del chat y cita fechas. Si no aparece, dilo; no supongas. Si el alumno quiere dejar notas en la ficha de un cliente, que te lo pida y lo haces (ver `/mentoria:cliente`).
 
 ## Desconectar
 
-1. Para el servidor (cierra el proceso en segundo plano).
+1. Para el servidor: `curl -s -X POST http://127.0.0.1:3977/api/shutdown -H 'Content-Type: application/json'`.
 2. Borra la sesión: `node ~/.fitleads-whatsapp/app/logout.js`
 3. **En el móvil:** WhatsApp → Dispositivos vinculados → toca este equipo → *Cerrar sesión*. Sin este paso, el móvil sigue vinculado.
 

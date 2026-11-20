@@ -68,3 +68,25 @@ export function shapeMessages(chatName, messages) {
       body: contenido(m),
     }));
 }
+
+/** True when getChatById found nothing or rejected a malformed id. */
+export function isChatNotFound(errOrChat) {
+  if (!errOrChat) return true;
+  const msg = String(errOrChat.message ?? '');
+  return /invalid wid|wid error|not found|Cannot read properties of (undefined|null)/i.test(msg);
+}
+
+export function statusPayload(estado, version) {
+  return { status: estado.status, error: estado.error, version };
+}
+
+/** Shutdown must be a JSON POST from the local origin (or no Origin at all). */
+export function isShutdownRequestValid(headers, hostsOk) {
+  if (!String(headers['content-type'] ?? '').startsWith('application/json')) return false;
+  if (!headers.origin) return true;
+  try {
+    return hostsOk.has(new URL(headers.origin).host);
+  } catch {
+    return false;
+  }
+}

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clampLimit, parseChatsQuery, parseMessagesQuery, selectChats, shapeMessages } from './api.js';
+import { isChatNotFound, isShutdownRequestValid, statusPayload, clampLimit, parseChatsQuery, parseMessagesQuery, selectChats, shapeMessages } from './api.js';
 
 const q = (s) => new URL(`http://x/${s}`).searchParams;
 const T = Date.UTC(2026, 10, 14, 10, 32, 0) / 1000;
@@ -92,4 +92,30 @@ test('shapeMessages returns oldest first with ISO timestamps, authors and placeh
     { timestamp: '2026-11-14T10:32:00.000Z', fromMe: false, author: 'Marta', body: '[imagen]' },
     { timestamp: '2026-11-14T10:33:00.000Z', fromMe: true, author: 'Tú', body: 'Buenas' },
   ]);
+});
+
+test('isChatNotFound recognises missing chats and malformed ids but not other failures', () => {
+  assert.equal(isChatNotFound(null), true);
+  assert.equal(isChatNotFound(new Error('Evaluation failed: Error: wid error: invalid wid')), true);
+  assert.equal(isChatNotFound(new Error("Cannot read properties of undefined (reading 'serialize')")), true);
+  assert.equal(isChatNotFound(new Error('Protocol error: Target closed')), false);
+});
+
+test('statusPayload exposes status, error and version', () => {
+  assert.deepEqual(statusPayload({ status: 'connected', error: null }, '0.3.0'), {
+    status: 'connected',
+    error: null,
+    version: '0.3.0',
+  });
+});
+
+test('isShutdownRequestValid requires a JSON content type and a local origin', () => {
+  const hosts = new Set(['127.0.0.1:3977']);
+  const ok = { 'content-type': 'application/json' };
+  assert.equal(isShutdownRequestValid(ok, hosts), true);
+  assert.equal(isShutdownRequestValid({ ...ok, origin: 'http://127.0.0.1:3977' }, hosts), true);
+  assert.equal(isShutdownRequestValid({}, hosts), false);
+  assert.equal(isShutdownRequestValid({ 'content-type': 'text/plain' }, hosts), false);
+  assert.equal(isShutdownRequestValid({ ...ok, origin: 'https://evil.example' }, hosts), false);
+  assert.equal(isShutdownRequestValid({ ...ok, origin: 'not a url' }, hosts), false);
 });

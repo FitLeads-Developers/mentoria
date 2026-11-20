@@ -7,11 +7,15 @@ import path from 'node:path';
 import QRCode from 'qrcode';
 import pkg from 'whatsapp-web.js';
 import { chatToMarkdown } from './format.js';
-import { parseChatsQuery, parseMessagesQuery, selectChats, shapeMessages } from './api.js';
+import { isChatNotFound, isShutdownRequestValid, statusPayload, parseChatsQuery, parseMessagesQuery, selectChats, shapeMessages } from './api.js';
 import { openCommand, findChrome, isLaunchFailure } from './browser.js';
 import { HOST, PORT, DATA_DIR } from './config.js';
 
 const { Client, LocalAuth } = pkg;
+
+const VERSION = JSON.parse(
+  await fs.readFile(new URL('./package.json', import.meta.url), 'utf8'),
+).version;
 
 const estado = { status: 'loading', qr: null, error: null };
 
@@ -23,8 +27,13 @@ function crearCliente(executablePath) {
     puppeteer: { headless: true, ...(executablePath ? { executablePath } : {}) },
   });
   c.on('qr', async (qr) => {
-    estado.status = 'qr';
-    estado.qr = await QRCode.toDataURL(qr, { margin: 2, width: 320 });
+    try {
+      estado.qr = await QRCode.toDataURL(qr, { margin: 2, width: 320 });
+      estado.status = 'qr';
+    } catch (e) {
+      estado.status = 'error';
+      estado.error = e.message;
+    }
   });
   c.on('authenticated', () => {
     estado.status = 'loading';
@@ -108,8 +117,16 @@ async function listarChats(opciones) {
   return selectChats(await client.getChats(), opciones);
 }
 
+class ChatNoEncontrado extends Error {}
+
 async function leerMensajes({ chatId, limit, format }) {
-  const chat = await client.getChatById(chatId);
+  let chat;
+  try {
+    chat = await client.getChatById(chatId);
+  } catch (e) {
+    if (!isChatNotFound(e)) throw e;
+  }
+  if (!chat) throw new ChatNoEncontrado();
   const crudos = await chat.fetchMessages({ limit });
   const mensajes = crudos.map((m) => ({
     timestamp: m.timestamp,
@@ -133,7 +150,7 @@ const server = http.createServer(async (req, res) => {
       return res.end(pagina());
     }
     if (req.method === 'GET' && pathname === '/api/status') {
-      return json(res, 200, { status: estado.status, error: estado.error });
+      return json(res, 200, statusPayload(estado, VERSION));
     }
     if (req.method === 'GET' && pathname === '/api/chats') {
       if (estado.status !== 'connected') return json(res, 409, { error: 'no conectado', status: estado.status });
@@ -150,9 +167,17 @@ const server = http.createServer(async (req, res) => {
       }
       return json(res, 200, datos);
     }
+    if (req.method === 'POST' && pathname === '/api/shutdown') {
+      if (!isShutdownRequestValid(req.headers, HOSTS_OK)) return json(res, 403, { error: 'petición no permitida' });
+      json(res, 200, { ok: true });
+      setImmediate(parar);
+      return;
+    }
     return json(res, 404, { error: 'no existe' });
   } catch (e) {
-    return json(res, 500, { error: e.message });
+    if (e instanceof ChatNoEncontrado) return json(res, 404, { error: 'chat no encontrado' });
+    console.error('Error en la petición:', e);
+    return json(res, 500, { error: 'error interno' });
   }
 });
 
@@ -196,3 +221,12 @@ async function parar() {
 }
 process.on('SIGINT', parar);
 process.on('SIGTERM', parar);
+
+// Last-resort guard: a stray rejection must not kill the reader silently.
+process.on('unhandledRejection', (e) => {
+  console.error('Error no controlado:', e);
+  if (estado.status !== 'connected') {
+    estado.status = 'error';
+    estado.error = String(e?.message ?? e);
+  }
+});
