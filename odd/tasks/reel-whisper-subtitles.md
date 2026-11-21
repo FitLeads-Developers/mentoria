@@ -15,10 +15,18 @@ Use Remotion's official `@remotion/install-whisper-cpp` (installs whisper.cpp + 
 - TDD on (global). Runner: `node --test` for any pure helper.
 
 ## Tasks
-- [ ] T1 Transcription script + `/mentoria:instalar` installs whisper.cpp and a model inside `~/mentoria/reels`; `/mentoria:reel` transcribes, shows transcript for correction, writes SRT + captions JSON, burns subtitles with Remotion; standalone "solo transcribir" path. Plugin 0.5.0. Route: delegated writer (2+ non-trivial files).
+- [x] T1 Transcription script + `/mentoria:instalar` installs whisper.cpp and a model inside `~/mentoria/reels`; `/mentoria:reel` transcribes, shows transcript for correction, writes SRT + captions JSON, burns subtitles with Remotion; standalone "solo transcribir" path. Plugin 0.5.0. Route: delegated writer (2+ non-trivial files).
 
 ## Progress / evidence
-- (none yet)
+- T1 done (delegated writer). Commits: 1a94850 (script + tests), 2b7d98d (skills, README, plugin 0.5.0).
+- TDD (node --test via testsem, `plugin/scripts/reels`): RED = module missing, 0 tests ran; then 20/20 GREEN; extended twice (setup flag: 3 RED -> 22/22; opening marks and line trim: 2 RED -> 25/25).
+- `node --check` ok on captions.mjs and transcribe.mjs; `claude plugin validate .` passed.
+- Verified APIs (remotion 4.0.545 .d.ts + remotion.dev docs): installWhisperCpp({version,to}), downloadWhisperModel({model,folder}), transcribe({inputPath,whisperPath,whisperCppVersion,model,modelFolder,language,tokenLevelTimestamps}), toCaptions({whisperCppOutput}), @remotion/captions Caption, serializeSrt({lines}), createTikTokStyleCaptions; `npx remotion ffmpeg` exists (ffmpeg n7.1).
+- Real e2e on macOS (scratch, tiny model, generated Spanish speech with `say`): whisper.cpp 1.5.5 built in ~45 s, tiny model downloaded, wav conversion, .txt/.srt/.captions.json written. Not run: small/medium model, Windows, Linux, the skills driven by Claude, Remotion animated render.
+- Decisions: whisper.cpp 1.5.5 (version in Remotion docs; Windows prebuilt binary), default model `small` (about 470 MB, acceptable Spanish on CPU), `--model medium` optional; `--setup` flag installs whisper and the model; scripts are .mjs so they work inside the reels project regardless of its package type; packages pinned to the project's remotion version at install time.
+
+## Route
+Delegated writer (2+ non-trivial files).
 
 ## Next step
-T1.
+User review, then push via FitLeads-Developers.
