@@ -6,7 +6,11 @@ import {
   wordsToTranscript,
   buildOutputPaths,
   parseArgs,
+  findExistingOutputs,
+  whisperPaths,
+  isModelComplete,
   DEFAULT_MODEL,
+  MODELS,
 } from './captions.mjs';
 
 const tok = (text, startMs, endMs) => ({
@@ -111,7 +115,7 @@ test('buildOutputPaths puts outputs next to the video by default', () => {
   assert.equal(p.captionsJson, '/v/reel sentadillas.captions.json');
   assert.equal(p.srt, '/v/reel sentadillas.srt');
   assert.equal(p.txt, '/v/reel sentadillas.txt');
-  assert.equal(p.wav, '/v/reel sentadillas.16k.wav');
+  assert.equal(p.wav, undefined);
 });
 
 test('buildOutputPaths honours an output directory', () => {
@@ -123,6 +127,7 @@ test('buildOutputPaths honours an output directory', () => {
 test('parseArgs reads video, model and out', () => {
   assert.deepEqual(parseArgs(['clip.mp4', '--model', 'medium', '--out', 'o']), {
     setup: false,
+    force: false,
     video: 'clip.mp4',
     model: 'medium',
     out: 'o',
@@ -179,4 +184,45 @@ test('groupWordsIntoLines does not mutate its input', () => {
   const words = ['uno', ' dos'].map((t, i) => word(t, i * 100, i * 100 + 90));
   groupWordsIntoLines(words, { maxWords: 1 });
   assert.equal(words[1].text, ' dos');
+});
+
+test('parseArgs reads --force', () => {
+  assert.equal(parseArgs(['clip.mp4', '--force']).force, true);
+});
+
+test('MODELS only lists multilingual models whisper.cpp 1.5.5 supports', () => {
+  assert.deepEqual(MODELS, ['tiny', 'base', 'small', 'medium']);
+});
+
+test('findExistingOutputs lists the outputs that already exist', () => {
+  const paths = buildOutputPaths('/v/clip.mp4');
+  const present = new Set([paths.srt, paths.captionsJson]);
+  assert.deepEqual(findExistingOutputs(paths, (f) => present.has(f)), [paths.captionsJson, paths.srt]);
+});
+
+test('findExistingOutputs is empty when nothing exists', () => {
+  assert.deepEqual(findExistingOutputs(buildOutputPaths('/v/clip.mp4'), () => false), []);
+});
+
+test('whisperPaths points to the main binary of whisper.cpp 1.5.5 on unix', () => {
+  const p = whisperPaths('/w', '1.5.5', 'small', 'darwin');
+  assert.equal(p.binary, '/w/main');
+  assert.equal(p.model, '/w/ggml-small.bin');
+});
+
+test('whisperPaths uses main.exe on Windows for 1.5.5', () => {
+  assert.match(whisperPaths('C:/w', '1.5.5', 'small', 'win32').binary, /main\.exe$/);
+});
+
+test('whisperPaths uses whisper-cli from 1.7.4', () => {
+  assert.equal(whisperPaths('/w', '1.7.4', 'small', 'linux').binary, '/w/build/bin/whisper-cli');
+});
+
+test('isModelComplete rejects a truncated model file', () => {
+  assert.equal(isModelComplete('small', 1000), false);
+  assert.equal(isModelComplete('small', 487601967), true);
+});
+
+test('isModelComplete rejects unknown models', () => {
+  assert.equal(isModelComplete('gigante', 999999999999), false);
 });

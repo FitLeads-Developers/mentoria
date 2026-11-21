@@ -3,7 +3,10 @@ import path from 'node:path';
 
 export const DEFAULT_MODEL = 'small';
 // Multilingual models only: the `.en` variants cannot transcribe Spanish.
-export const MODELS = ['tiny', 'base', 'small', 'medium', 'large-v3-turbo'];
+// large-v3-turbo is left out on purpose: it postdates whisper.cpp 1.5.5, the pinned version.
+export const MODELS = ['tiny', 'base', 'small', 'medium'];
+// Exact sizes in bytes from @remotion/install-whisper-cpp, to detect interrupted downloads.
+const MODEL_SIZES = { tiny: 77691713, base: 147951465, small: 487601967, medium: 1533763059 };
 
 const SPECIAL_TOKEN = /^\s*\[[^\]]*\]\s*$/; // [_BEG_], [_TT_150], [BLANK_AUDIO]
 const OPENING_ONLY = /^\s*[¡¿(«\[]+$/;
@@ -96,20 +99,48 @@ export function buildOutputPaths(videoPath, outDir) {
   const { dir, name } = path.parse(videoPath);
   const base = path.join(outDir ?? dir, name);
   return {
-    wav: `${base}.16k.wav`,
     captionsJson: `${base}.captions.json`,
     srt: `${base}.srt`,
     txt: `${base}.txt`,
   };
 }
 
-/** CLI: node transcribe.mjs <video> [--model small] [--out <dir>]  |  node transcribe.mjs --setup [--model small] */
+/** Outputs that already exist, so a re-run cannot silently overwrite the student's corrections. */
+export function findExistingOutputs(paths, exists) {
+  return Object.values(paths).filter((file) => exists(file));
+}
+
+/** Where whisper.cpp keeps its binary and a model, mirroring @remotion/install-whisper-cpp. */
+export function whisperPaths(dir, version, model, platform = process.platform) {
+  const modern = compareVersions(version, '1.7.4') >= 0;
+  const folder = modern ? ['build', 'bin'] : [];
+  const exe = `${modern ? 'whisper-cli' : 'main'}${platform === 'win32' ? '.exe' : ''}`;
+  return { binary: path.join(dir, ...folder, exe), model: path.join(dir, `ggml-${model}.bin`) };
+}
+
+function compareVersions(a, b) {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+export function isModelComplete(model, sizeBytes) {
+  return model in MODEL_SIZES && sizeBytes >= MODEL_SIZES[model];
+}
+
+/** CLI: node transcribe.mjs <video> [--model small] [--out <dir>] [--force]  |  node transcribe.mjs --setup [--model small] */
 export function parseArgs(argv) {
-  const args = { video: undefined, model: DEFAULT_MODEL, out: undefined, setup: false };
+  const args = { video: undefined, model: DEFAULT_MODEL, out: undefined, setup: false, force: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--setup') {
       args.setup = true;
+    } else if (arg === '--force') {
+      args.force = true;
     } else if (arg === '--model' || arg === '--out') {
       const value = argv[++i];
       if (value === undefined || value.startsWith('--')) throw new Error(`Falta el valor de ${arg}`);
