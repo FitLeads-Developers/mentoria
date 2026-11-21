@@ -1,7 +1,14 @@
 ---
 name: reel
-description: Edita un vídeo que has grabado con el móvil para convertirlo en un reel con Remotion: subtítulos animados, colores de tu marca y una plantilla reutilizable. Úsala cuando el alumno quiera editar un vídeo grabado, añadir subtítulos o preparar un reel.
+description: Edita un vídeo que has grabado con el móvil para convertirlo en un reel con Remotion: transcripción local gratis, subtítulos animados, colores de tu marca y una plantilla reutilizable. También sirve solo para transcribir un vídeo a texto o a un archivo de subtítulos (SRT). Úsala cuando el alumno quiera editar un vídeo grabado, transcribirlo, añadir subtítulos o preparar un reel.
 argument-hint: "[ruta del vídeo]"
+allowed-tools:
+  - Bash(node --version)
+  - Bash(mkdir -p ~/mentoria)
+  - Bash(npx -y create-video@latest --yes --blank --skills reels)
+  - Bash(cd ~/mentoria/reels && node scripts/transcribe.mjs *)
+  - Bash(cd ~/mentoria/reels && npx remotion studio)
+  - Bash(cd ~/mentoria/reels && npx remotion render *)
 ---
 
 # Reel editado con Remotion
@@ -10,16 +17,31 @@ Habla en español, tutea, frases cortas. Solo **edición**: el guion lo trae el 
 
 ## Requisitos
 - Node.js instalado (`node --version`).
+- La transcripción se hace en tu ordenador con Whisper, gratis y sin cuenta ni clave. La prepara `/mentoria:instalar` (carpeta `~/mentoria/reels/whisper.cpp` y script `~/mentoria/reels/scripts/transcribe.mjs`). Si falta, ofrece ejecutar `/mentoria:instalar` (paso de Whisper) antes de seguir.
 - Remotion es gratis para autónomos y empresas de hasta 3 personas. Condiciones al día en https://www.remotion.dev
 
 ## Qué hacer
 
+0. **¿Qué quiere el alumno?** Si solo quiere el texto o un archivo de subtítulos (SRT) y no quiere editar el vídeo, sigue la sección **Solo transcribir** y no hagas nada más.
 1. Pide la ruta del vídeo y la duración objetivo (30 s por defecto). Comprueba que el archivo existe.
 2. **Marca:** si hay `entrenador-ia/marca.md` (o un archivo de marca del alumno), léelo y usa sus colores y tipografías. Con la marca de ejemplo: texto tinta `#1B1F1E` sobre arena `#F5EFE6`, acento coral `#FF6B4A` para la palabra clave, titulares Archivo e Inter para el texto. Si no hay marca, pregunta 2 colores y una fuente.
-3. **Subtítulos:** transcribe el audio, enséñale la transcripción para que corrija errores y solo entonces crea los subtítulos animados (grandes, palabra clave destacada).
+3. **Subtítulos** (en este orden; no saltes la corrección):
+   1. **Transcribe** con el script: `cd ~/mentoria/reels && node scripts/transcribe.mjs "<ruta del vídeo>"`. Deja junto al vídeo `nombre.txt` (texto), `nombre.srt` (subtítulos) y `nombre.captions.json` (palabras con sus tiempos). Avisa de que tarda unos minutos y no sale nada hasta el final.
+   2. **Enséñale el texto** (`nombre.txt`) y pídele que corrija errores: nombres propios, términos de entrenamiento («sentadilla búlgara», «press banca»), marcas. Whisper se equivoca más con nombres y jerga.
+   3. **Aplica las correcciones** al `nombre.captions.json`: cambia solo el campo `text` de las palabras afectadas y conserva `startMs`, `endMs` y el espacio inicial de cada palabra. Si una corrección une o separa palabras, reparte los tiempos entre ellas. Actualiza también `nombre.txt` y `nombre.srt` si el alumno los va a usar. Enséñale el resultado en una línea.
+   4. **Crea los subtítulos animados** en Remotion desde el `captions.json` corregido: carga el JSON como lista de `Caption` de `@remotion/captions`, agrúpalo con `createTikTokStyleCaptions` (`combineTokensWithinMilliseconds` en torno a 1200; menos = frases más cortas) y pinta cada página con sus palabras. La palabra que se está diciendo va en el **color de acento de la marca**; el resto en el color de texto. Letra grande, 2-3 líneas como máximo, dentro de la zona segura (no tapes la parte baja donde la app pone sus botones).
 4. Usa el proyecto de `~/mentoria/reels` si existe (lo crea `/mentoria:instalar`, con las skills oficiales de Remotion). Si no, créalo con `npx -y create-video@latest --yes --blank --skills reels` dentro de `~/mentoria`. Cada reel va en su propia composición, con la **plantilla reutilizable**: vídeo de entrada, subtítulos y colores como parámetros, para que el siguiente reel sea cambiar el archivo.
 5. Previsualiza (`npx remotion studio`), corrige lo que pida el alumno y renderiza a MP4 vertical 1080x1920.
 6. Si usa imágenes o personajes generados con IA, el vídeo debe indicarlo (etiqueta «creado con IA» al publicar).
+
+## Solo transcribir
+
+Para quien solo quiere el texto de un vídeo (para un post, un guion o subirle los subtítulos a otra app) sin editarlo:
+1. Pide la ruta del vídeo y comprueba que existe.
+2. Ejecuta `cd ~/mentoria/reels && node scripts/transcribe.mjs "<ruta del vídeo>"`. Si el alumno prefiere otra carpeta de salida, añade `--out "<carpeta>"`.
+3. Enséñale el texto, deja que lo corrija y aplica los cambios a `nombre.txt` y `nombre.srt`.
+4. Dile dónde están los archivos: `nombre.txt` (texto), `nombre.srt` (subtítulos para subir a Instagram, TikTok, YouTube o a un editor) y `nombre.captions.json` (palabras con tiempos; solo hace falta si luego quieres subtítulos animados con `/mentoria:reel`).
+No renderices ni abras Remotion en este camino.
 
 ## Ejemplo para copiar
 
@@ -28,4 +50,10 @@ Tengo un vídeo de 30 segundos grabado con el móvil en reel-sentadillas.mp4 don
 una rodilla operada sí puede hacer sentadillas con control. Edítalo con Remotion en vertical:
 subtítulos animados grandes, con mis colores de marca.md y la palabra clave en el color de acento.
 Enséñame primero la transcripción para corregirla. Deja una plantilla que pueda reutilizar.
+```
+
+Solo el texto:
+
+```
+Transcríbeme el vídeo reel-sentadillas.mp4 y dame el texto y el archivo de subtítulos (SRT). No lo edites.
 ```
