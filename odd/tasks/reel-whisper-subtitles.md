@@ -25,6 +25,8 @@ Use Remotion's official `@remotion/install-whisper-cpp` (installs whisper.cpp + 
 - Real e2e on macOS (scratch, tiny model, generated Spanish speech with `say`): whisper.cpp 1.5.5 built in ~45 s, tiny model downloaded, wav conversion, .txt/.srt/.captions.json written. Not run: small/medium model, Windows, Linux, the skills driven by Claude, Remotion animated render.
 - Decisions: whisper.cpp 1.5.5 (version in Remotion docs; Windows prebuilt binary), default model `small` (about 470 MB, acceptable Spanish on CPU), `--model medium` optional; `--setup` flag installs whisper and the model; scripts are .mjs so they work inside the reels project regardless of its package type; packages pinned to the project's remotion version at install time.
 
+- Review correction (8 findings): `--setup` now repairs and verifies binary and model and always runs; transcribe never installs; outputs are protected unless `--force`; WAV goes to an `os.tmpdir()` mkdtemp dir removed in `finally`; `large-v3-turbo` dropped (accepted by the 4.0.545 .d.ts but postdates whisper.cpp 1.5.5); skills always copy scripts, guard on the script, and every command matches allowed-tools. TDD: RED (import failure) then 34/34 GREEN. e2e (tiny, scratch): first run ok, rerun refused, `--force` ok, missing model gives the /mentoria:instalar message, `--setup` reuses. Commits: see git log (fix(reels) and fix(mentoria)).
+
 ## Route
 Delegated writer (2+ non-trivial files).
 

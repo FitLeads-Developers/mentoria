@@ -11,17 +11,18 @@ allowed-tools:
   - Bash(start *)
   - Bash(claude --version)
   - Bash(mkdir -p ~/mentoria)
-  - Bash(npx -y create-video@latest --yes --blank --skills reels)
-  - Bash(npx remotion compositions)
-  - Bash(npx remotion render *)
+  - Bash(cd ~/mentoria && npx -y create-video@latest --yes --blank --skills reels)
+  - Bash(cd ~/mentoria/reels && npx remotion compositions)
+  - Bash(cd ~/mentoria/reels && npx remotion render *)
   - Bash(cd ~/mentoria/reels && node -p "require('remotion/package.json').version")
   - Bash(cd ~/mentoria/reels && npm install --save-exact @remotion/install-whisper-cpp@* @remotion/captions@*)
   - Bash(mkdir -p ~/mentoria/reels/scripts)
-  - Bash(cp *scripts/reels/transcribe.mjs *scripts/reels/captions.mjs ~/mentoria/reels/scripts/)
+  - Bash(cp *scripts/reels/* ~/mentoria/reels/scripts/)
   - Bash(cd ~/mentoria/reels && node scripts/transcribe.mjs --setup *)
   - Bash(xcode-select -p)
   - Bash(git --version)
   - Bash(make --version)
+  - Bash(eza ~/mentoria/reels/*)
 ---
 
 # Instalar: tu ordenador listo para el curso
@@ -54,22 +55,22 @@ Ejecuta `claude --version`. Si funciona, ya estás dentro. Recuerda: Claude Code
 ### 4. Remotion: tu editor de vídeo
 Remotion edita vídeos con código: subtítulos, cortes y plantillas que Claude escribe por ti. Es gratis para autónomos y equipos de hasta 3 personas.
 1. Di: «Voy a crear tu carpeta de reels en `~/mentoria/reels`. Tarda unos minutos».
-2. Ejecuta `mkdir -p ~/mentoria` y, dentro de `~/mentoria`, `npx -y create-video@latest --yes --blank --skills reels`. Crea el proyecto, instala lo necesario y añade las skills oficiales de Remotion para Claude.
-3. Comprueba que funciona: dentro de `~/mentoria/reels`, `npx remotion compositions` y `npx remotion render MyComp out/prueba.mp4 --frames=0-29`. La primera vez descarga un navegador interno; es normal.
+2. Ejecuta `mkdir -p ~/mentoria` y después `cd ~/mentoria && npx -y create-video@latest --yes --blank --skills reels`. Crea el proyecto, instala lo necesario y añade las skills oficiales de Remotion para Claude.
+3. Comprueba que funciona: `cd ~/mentoria/reels && npx remotion compositions` y `cd ~/mentoria/reels && npx remotion render MyComp out/prueba.mp4 --frames=0-29`. La primera vez descarga un navegador interno; es normal.
 4. Si sale `out/prueba.mp4`: ✅. Si falla, enseña el error en una frase y sigue con el resto; `/mentoria:reel` lo reintenta.
 Si ya existe `~/mentoria/reels`, no lo vuelvas a crear: solo haz la comprobación del punto 3.
 
 ### 4b. Transcripción local (Whisper)
-Sirve para que Claude convierta lo que dices en un vídeo en texto y subtítulos, en tu ordenador, gratis y sin cuenta ni clave. Si `~/mentoria/reels/whisper.cpp` ya existe, salta al punto 5 de este paso.
+Sirve para que Claude convierta lo que dices en un vídeo en texto y subtítulos, en tu ordenador, gratis y sin cuenta ni clave. Todos los pasos de abajo se repiten siempre, también si ya estaba instalado: así se actualizan los scripts con el plugin y se repara una instalación a medias. Lo que ya existe se reutiliza y no se descarga otra vez.
 1. **Requisitos por sistema** (compruébalos antes; no instales nada con `sudo`):
    - **Mac:** necesita las herramientas de línea de comandos de Apple (compilan Whisper una vez). Comprueba con `xcode-select -p`. Si falla, dile que ejecute `xcode-select --install` en la Terminal, acepte la ventana y espere (unos minutos). Para y espera.
    - **Windows:** no necesita nada más; descarga un programa ya hecho (usa PowerShell, que ya viene en Windows).
    - **Linux:** necesita `git`, `make` y un compilador de C++ (en Ubuntu/Debian: `sudo apt install build-essential git`, lo ejecuta el alumno). Comprueba con `git --version` y `make --version`.
 2. Lee la versión de Remotion del proyecto con `cd ~/mentoria/reels && node -p "require('remotion/package.json').version"` e instala los paquetes **a esa misma versión exacta** (si no, Remotion avisa de versiones mezcladas): `cd ~/mentoria/reels && npm install --save-exact @remotion/install-whisper-cpp@<versión> @remotion/captions@<versión>`.
-3. Copia el script: `mkdir -p ~/mentoria/reels/scripts` y `cp "${CLAUDE_PLUGIN_ROOT}/scripts/reels/transcribe.mjs" "${CLAUDE_PLUGIN_ROOT}/scripts/reels/captions.mjs" ~/mentoria/reels/scripts/`. Se copia porque el plugin puede actualizarse y borrar su carpeta.
-4. Avisa antes de lanzar: «Voy a instalar Whisper y su modelo en español. Descarga unos **470 MB** (modelo `small`) y compila una vez: **5-15 minutos** según tu conexión y tu ordenador. Es una sola vez». Y ejecuta `cd ~/mentoria/reels && node scripts/transcribe.mjs --setup --model small`.
-   - Si el alumno prefiere más precisión y no le importa esperar más: `--model medium` (unos 1,5 GB y el doble de lento al transcribir). Con ordenadores muy justos: `--model base` (unos 140 MB, menos preciso). Nunca modelos `.en`: son solo inglés.
-5. Comprueba que existe la carpeta `~/mentoria/reels/whisper.cpp`. Si sale ✅, la transcripción está lista. Si falla, enseña el error en una frase (lo habitual en Mac es faltar `xcode-select --install`) y sigue con el resto; `/mentoria:reel` lo reintenta.
+3. Copia los scripts (siempre, aunque ya existan: así se actualizan): `mkdir -p ~/mentoria/reels/scripts` y `cp "${CLAUDE_PLUGIN_ROOT}/scripts/reels/transcribe.mjs" "${CLAUDE_PLUGIN_ROOT}/scripts/reels/captions.mjs" ~/mentoria/reels/scripts/`. Se copia porque el plugin puede actualizarse y borrar su carpeta.
+4. Avisa antes de lanzar: «Voy a instalar Whisper y su modelo en español. Descarga unos **470 MB** (modelo `small`) y compila una vez: **5-15 minutos** según tu conexión y tu ordenador. Es una sola vez; si ya estaba instalado, tarda segundos». Y ejecuta `cd ~/mentoria/reels && node scripts/transcribe.mjs --setup --model small`.
+   - Para cambiar de modelo más adelante, repite este mismo comando con otro `--model`: reutiliza todo lo instalado y solo descarga el modelo nuevo. Si el alumno prefiere más precisión y no le importa esperar más: `--model medium` (unos 1,5 GB y el doble de lento al transcribir). Con ordenadores muy justos: `--model base` (unos 140 MB, menos preciso). Nunca modelos `.en`: son solo inglés.
+5. El propio comando comprueba que existen el programa y el modelo; si termina con «Listo», ✅: la transcripción está lista. Si falla, enseña el error en una frase (lo habitual en Mac es faltar `xcode-select --install`) y sigue con el resto; `/mentoria:reel` lo reintenta.
 
 ### 5. Cuentas (una a una)
 Para cada fila: «Voy a abrirte la página de X. Crea la cuenta tú y dime *hecho*». Abre con `open URL` (Mac), `xdg-open URL` (Linux) o `start URL` (Windows). Luego PARA.
@@ -89,7 +90,7 @@ Gmail, Google Calendar y Google Drive se conectan en la app de Claude: **Setting
 Después, la extensión **Claude in Chrome**: se instala desde la Chrome Web Store (busca «Claude in Chrome»). Para y espera.
 
 ### 7. Comprobación final
-Verifica lo que puedas (`node --version`, `claude --version`, que exista `~/mentoria/reels/out/prueba.mp4` y la carpeta `~/mentoria/reels/whisper.cpp`). El resto lo confirma el alumno. Muestra la tabla con ✅ / ⏳ / ❌ según lo que haya dicho:
+Verifica lo que puedas (`node --version`, `claude --version`, que exista `~/mentoria/reels/out/prueba.mp4` y la carpeta `~/mentoria/reels/whisper.cpp`, con `eza ~/mentoria/reels/out/prueba.mp4 ~/mentoria/reels/whisper.cpp`). El resto lo confirma el alumno. Muestra la tabla con ✅ / ⏳ / ❌ según lo que haya dicho:
 
 | Cosa | Estado |
 |---|---|
